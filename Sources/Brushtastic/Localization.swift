@@ -12,6 +12,7 @@ struct L10n {
     let tool: String
     let color: String
     let lineWidth: String
+    let transparency: String
     let launchAtLogin: String
     let launchAtLoginPending: String
     let launchAtLoginError: String
@@ -48,6 +49,7 @@ struct L10n {
         tool: "Verktøy",
         color: "Farge",
         lineWidth: "Strektykkelse",
+        transparency: "Gjennomsiktighet",
         launchAtLogin: "Start ved innlogging",
         launchAtLoginPending: "Start ved innlogging (venter på godkjenning)",
         launchAtLoginError: "Kunne ikke endre oppstart ved innlogging",
@@ -80,6 +82,7 @@ struct L10n {
         tool: "Tool",
         color: "Color",
         lineWidth: "Line Width",
+        transparency: "Transparency",
         launchAtLogin: "Launch at Login",
         launchAtLoginPending: "Launch at Login (awaiting approval)",
         launchAtLoginError: "Could not change Launch at Login",
@@ -115,6 +118,14 @@ struct L10n {
     }()
 
     static let current: L10n = isNorwegian ? .norwegian : .english
+
+    /// Prosent i språkets format: «25 %» på norsk, «25%» på engelsk.
+    func percent(_ value: Int) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .percent
+        f.locale = numberLocale
+        return f.string(from: NSNumber(value: Double(value) / 100)) ?? "\(value) %"
+    }
 }
 
 /// Kortform: `L.startDrawing`

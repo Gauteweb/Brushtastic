@@ -179,7 +179,9 @@ final class OverlayView: NSView {
             path.lineWidth = stroke.width
             path.lineCapStyle = .round
             path.lineJoinStyle = .round
-            stroke.color.withAlphaComponent(alpha).setStroke()
+            // Uttoning ganget med valgt gjennomsiktighet. Hele streken tegnes i én operasjon,
+            // så der den krysser seg selv blir den ikke mørkere.
+            stroke.color.withAlphaComponent(alpha * stroke.opacity).setStroke()
             path.stroke()
         }
 

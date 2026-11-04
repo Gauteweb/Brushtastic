@@ -8,16 +8,19 @@ final class Stroke {
     var points: [CGPoint]
     let color: NSColor
     let width: CGFloat
+    /// Dekkevne valgt da streken ble startet (1 = helt dekkende).
+    let opacity: CGFloat
     /// Shift holdt inne: sirkel/kvadrat med like sider, rett strek låst til 45°-vinkler.
     var constrained = false
     /// Settes når musknappen slippes; uttoningen starter først etter dette.
     var finishedAt: CFTimeInterval?
 
-    init(tool: Tool, start: CGPoint, color: NSColor, width: CGFloat) {
+    init(tool: Tool, start: CGPoint, color: NSColor, width: CGFloat, opacity: CGFloat) {
         self.tool = tool
         self.points = tool == .freehand ? [start] : [start, start]
         self.color = color
         self.width = width
+        self.opacity = opacity
     }
 
     var bounds: CGRect {
@@ -61,7 +64,8 @@ final class StrokeStore {
 
     func begin(at point: CGPoint, constrained: Bool) {
         let s = Stroke(tool: Settings.shared.tool, start: point,
-                       color: Settings.shared.color, width: Settings.shared.lineWidth)
+                       color: Settings.shared.color, width: Settings.shared.lineWidth,
+                       opacity: Settings.shared.opacity)
         s.constrained = constrained
         strokes.append(s)
         current = s

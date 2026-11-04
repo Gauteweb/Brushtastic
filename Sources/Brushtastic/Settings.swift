@@ -14,6 +14,7 @@ final class Settings {
         static let colorIndex = "colorIndex"
         static let lineWidth = "lineWidth"
         static let tool = "tool"
+        static let transparency = "transparency"
     }
 
     static let colors: [(name: String, color: NSColor)] = [
@@ -32,13 +33,29 @@ final class Settings {
         (L.widthThick, 12),
     ]
 
+    /// Valgbare gjennomsiktigheter i prosent (0 = helt dekkende).
+    static let transparencies: [Int] = [0, 25, 50, 75]
+
     private init() {
         defaults.register(defaults: [
             Key.fadeDelay: 3.0,
             Key.colorIndex: 0,
             Key.lineWidth: 6.0,
+            Key.transparency: 0,
         ])
     }
+
+    /// Gjennomsiktighet for nye streker, i prosent.
+    var transparency: Int {
+        get {
+            let v = defaults.integer(forKey: Key.transparency)
+            return Self.transparencies.contains(v) ? v : 0
+        }
+        set { defaults.set(newValue, forKey: Key.transparency) }
+    }
+
+    /// Dekkevne for nye streker (1 = helt dekkende).
+    var opacity: CGFloat { 1 - CGFloat(transparency) / 100 }
 
     /// Glidebryterens ytterste posisjon til høyre: strekene fader aldri.
     static let neverFadeSliderValue: Double = fadeDelayRange.upperBound + 0.5

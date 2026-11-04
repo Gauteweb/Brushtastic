@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let toolMenu = NSMenu()
     private let colorMenu = NSMenu()
     private let widthMenu = NSMenu()
+    private let transparencyMenu = NSMenu()
     private var delayLabel: NSTextField!
     private var delaySlider: NSSlider!
 
@@ -125,6 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(makeToolMenuItem())
         menu.addItem(makeColorMenuItem())
         menu.addItem(makeWidthMenuItem())
+        menu.addItem(makeTransparencyMenuItem())
 
         menu.addItem(.separator())
         loginItem = NSMenuItem(title: L.launchAtLogin, action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
@@ -242,6 +244,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return item
     }
 
+    private func makeTransparencyMenuItem() -> NSMenuItem {
+        let item = NSMenuItem(title: L.transparency, action: nil, keyEquivalent: "")
+        for value in Settings.transparencies {
+            let mi = NSMenuItem(title: L.percent(value), action: #selector(transparencyChosen(_:)), keyEquivalent: "")
+            mi.target = self
+            mi.tag = value
+            transparencyMenu.addItem(mi)
+        }
+        item.submenu = transparencyMenu
+        return item
+    }
+
+    @objc private func transparencyChosen(_ sender: NSMenuItem) {
+        Settings.shared.transparency = sender.tag
+    }
+
     @objc private func colorChosen(_ sender: NSMenuItem) {
         Settings.shared.colorIndex = sender.tag
     }
@@ -299,6 +317,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateDelayLabel()
         toolMenu.items.forEach { $0.state = $0.tag == Settings.shared.tool.rawValue ? .on : .off }
         colorMenu.items.forEach { $0.state = $0.tag == Settings.shared.colorIndex ? .on : .off }
+        transparencyMenu.items.forEach { $0.state = $0.tag == Settings.shared.transparency ? .on : .off }
         widthMenu.items.forEach {
             $0.state = Settings.lineWidths[$0.tag].width == Settings.shared.lineWidth ? .on : .off
         }

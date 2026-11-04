@@ -55,6 +55,35 @@ at the top of the screen shows which tool is selected.
 
 ## Installation
 
+### Homebrew (recommended)
+
+```sh
+brew install gauteweb/tap/brushtastic
+```
+
+Homebrew builds the app from source on your Mac, so it works on both Apple silicon and Intel and
+opens without any Gatekeeper warning. Start it with:
+
+```sh
+open "$(brew --prefix brushtastic)/Brushtastic.app"
+```
+
+To have it in Launchpad and Spotlight as well, link it into `~/Applications`:
+
+```sh
+ln -sf "$(brew --prefix brushtastic)/Brushtastic.app" ~/Applications/Brushtastic.app
+```
+
+Update or remove it with:
+
+```sh
+brew upgrade brushtastic
+brew uninstall brushtastic
+```
+
+> After `brew upgrade`, quit Brushtastic and open it again. If you use **Launch at Login**, turn
+> it off and on again in the menu so it points to the new version.
+
 ### Download
 
 1. Download `Brushtastic.zip` from the [latest release](../../releases/latest).
@@ -77,9 +106,12 @@ cd Brushtastic
 open build/Brushtastic.app
 ```
 
-`build.sh` compiles the app with Swift Package Manager, generates the app icon from `ikon.svg`,
-assembles `build/Brushtastic.app` and signs it ad hoc. The version number is set at the top of
-`build.sh`.
+`build.sh` compiles the app with `swiftc`, builds the app icon from `AppIcon.png`, assembles
+`build/Brushtastic.app` and signs it ad hoc. The version number is set at the top of `build.sh`.
+
+After changing `ikon.svg`, run `./make-icon.sh` to regenerate `AppIcon.png` and commit both.
+`Package.swift` is included so the project can be opened in Xcode or built with `swift build`
+during development.
 
 > If you enable **Launch at Login**, run the app from `/Applications` — the login item points to
 > the app's location, and `build/` is recreated on every build.
@@ -95,13 +127,18 @@ assembles `build/Brushtastic.app` and signs it ad hoc. The version number is set
 | `Sources/Brushtastic/HotKey.swift`      | Global shortcut (Carbon `RegisterEventHotKey`)           |
 | `Sources/Brushtastic/Settings.swift`    | User preferences (`UserDefaults`)                        |
 | `Sources/Brushtastic/Localization.swift`| Norwegian and English strings                            |
-| `build.sh`                              | Builds and packages the `.app`                           |
+| `build.sh`                              | Builds and packages the `.app` (also used by Homebrew)   |
+| `make-icon.sh`                          | Renders `AppIcon.png` from `ikon.svg`                    |
 | `ikon.svg`                              | App icon source                                          |
+| `AppIcon.png`                           | Rendered app icon used by `build.sh`                     |
 
 ## Known limitations
 
 - The ⌃⌥D shortcut cannot be changed. If another app already uses it, start drawing from the menu.
-- The app is signed ad hoc and not notarized, so Gatekeeper asks for confirmation on first launch.
+- The downloadable app is signed ad hoc and not notarized, so Gatekeeper asks for confirmation on
+  first launch. Installing with Homebrew avoids this.
+- The downloadable app is for Apple silicon only. On an Intel Mac, install with Homebrew or build
+  from source.
 
 ## License
 

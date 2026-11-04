@@ -1,35 +1,32 @@
 #!/usr/bin/env bash
-# Bygger Brushtastic.app i ./build (krever bare Command Line Tools).
+# Builds build/Brushtastic.app (only needs the Xcode Command Line Tools).
+# Also used by the Homebrew formula (gauteweb/tap/brushtastic).
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION="1.0"   # vises i menyen og i Finder
-BUILD="1"
+VERSION="1.0.1"   # shown in the menu and in Finder
+BUILD="2"
 
 APP="build/Brushtastic.app"
-swift build -c release
-
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$(swift build -c release --show-bin-path)/Brushtastic" "$APP/Contents/MacOS/Brushtastic"
 
-# App-ikon: ikon.svg -> PNG (Quick Look) -> .iconset (sips) -> AppIcon.icns (iconutil)
-ICONWORK=".build/icon"
-rm -rf "$ICONWORK"
-mkdir -p "$ICONWORK/AppIcon.iconset"
-# Marg som i Apples ikonmal: selve ikonet er 824 av 1024 px, sentrert (100 px luft rundt).
-# Pakker innholdet i ikon.svg inn i en skalert gruppe i stedet for å endre originalfilen.
-perl -0pe 's/(<svg\b[^>]*>)/$1\n<g transform="translate(100 100) scale(0.8046875)">/; s/<\/svg>\s*$/<\/g>\n<\/svg>\n/' \
-    ikon.svg > "$ICONWORK/ikon.svg"
-qlmanage -t -s 1024 -o "$ICONWORK" "$ICONWORK/ikon.svg" >/dev/null 2>&1
-SRC="$ICONWORK/ikon.svg.png"
-[ -f "$SRC" ] || { echo "Klarte ikke å konvertere ikon.svg" >&2; exit 1; }
+# Compile with swiftc directly (no SwiftPM), so it also works in Homebrew's sandbox.
+swiftc -O -swift-version 5 \
+    -framework AppKit -framework Carbon -framework ServiceManagement \
+    -o "$APP/Contents/MacOS/Brushtastic" \
+    Sources/Brushtastic/*.swift
+
+# App icon: AppIcon.png (made from ikon.svg by make-icon.sh) -> .iconset -> AppIcon.icns
+ICONSET="build/AppIcon.iconset"
+rm -rf "$ICONSET"
+mkdir -p "$ICONSET"
 for size in 16 32 128 256 512; do
-    sips -z $size $size "$SRC" --out "$ICONWORK/AppIcon.iconset/icon_${size}x${size}.png" >/dev/null
-    double=$((size * 2))
-    sips -z $double $double "$SRC" --out "$ICONWORK/AppIcon.iconset/icon_${size}x${size}@2x.png" >/dev/null
+    sips -z $size $size AppIcon.png --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+    sips -z $((size * 2)) $((size * 2)) AppIcon.png --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
 done
-iconutil -c icns "$ICONWORK/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+rm -rf "$ICONSET"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -54,7 +51,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-codesign --force --sign - "$APP" >/dev/null
-# Be Finder/Dock oppdatere ikon-cachen for appen.
+codesign --force --sign - "$APP" >/dev/null 2>&1
+# Ask Finder/Dock to refresh the icon cache for the app.
 touch "$APP"
-echo "Bygget $APP (versjon $VERSION)"
+echo "Built $APP (version $VERSION)"

@@ -5,7 +5,10 @@ enum Tool: Int, CaseIterable {
     case freehand = 1
     case ellipse = 2
     case rectangle = 3
-    case line = 5
+    case line = 4
+
+    /// Tasten som tar skjermbilde av et utsnitt mens tegnemodus er på.
+    static let screenshotKey = "5"
 
     /// Tasten som velger verktøyet.
     var key: String { String(rawValue) }
@@ -28,4 +31,6 @@ enum Tool: Int, CaseIterable {
 extension Notification.Name {
     /// Sendes når valgt verktøy endres, så overlay og meny kan oppdatere seg.
     static let brushtasticToolChanged = Notification.Name("BrushtasticToolChanged")
+    /// Sendes når brukeren trykker 5 i tegnemodus.
+    static let brushtasticTakeScreenshot = Notification.Name("BrushtasticTakeScreenshot")
 }

@@ -22,14 +22,14 @@ in your way.
 - **Click-through when off** — mouse clicks go straight to the apps underneath.
 - **Strokes fade out automatically** — after 3 seconds by default, adjustable from 0.5 to 10 seconds.
   Drag the slider all the way to the right and strokes **never** fade.
-- **Four tools**, switched with the number keys while drawing:
+- **Four tools**, switched with the number keys while drawing (`5` takes a screenshot):
 
   | Key | Tool          | With ⇧ Shift held              |
   | --- | ------------- | ------------------------------ |
   | `1` | Freehand      | —                              |
   | `2` | Circle        | Perfect circle                 |
   | `3` | Rectangle     | Perfect square                 |
-  | `5` | Straight line | Snaps to 45° angles            |
+  | `4` | Straight line | Snaps to 45° angles            |
 
 - **Multiple displays** — a single stroke can cross from one screen to the next.
 - **Colors, line widths and transparency** — red, yellow, green, blue, pink, white or black; thin,
@@ -49,11 +49,11 @@ in your way.
 | Action                         | How                                         |
 | ------------------------------ | ------------------------------------------- |
 | Start / stop drawing           | ⌃⌥D, or **Start Drawing** in the menu bar   |
-| Choose a tool                  | `1`, `2`, `3` or `5` while drawing          |
+| Choose a tool                  | `1`, `2`, `3` or `4` while drawing          |
 | Constrain shape / line angle   | Hold ⇧ Shift while dragging                 |
 | Clear everything               | Right-click while drawing, or **Clear All** |
 | Exit drawing mode              | `Esc` or ⌃⌥D                                |
-| Screenshot to clipboard        | **Take Screenshot of Selection…**, then drag; `Esc` cancels |
+| Screenshot to clipboard        | `5` while drawing, or **Take Screenshot of Selection…**; drag, `Esc` cancels |
 | Change fade-out delay          | Slider in the menu bar menu                 |
 
 While drawing mode is on, the screen gets a faint tint and an accent-colored border, and a toolbar

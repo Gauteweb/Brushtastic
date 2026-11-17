@@ -41,6 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                                object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(exitDrawing),
                                                name: .brushtasticExitDrawing, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(takeScreenshot),
+                                               name: .brushtasticTakeScreenshot, object: nil)
         // Når brukeren bytter Space, sørg for at panelene fortsatt ligger øverst.
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(spaceChanged),
                                                           name: NSWorkspace.activeSpaceDidChangeNotification,
@@ -122,7 +124,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         clear.target = self
         menu.addItem(clear)
 
-        let screenshot = NSMenuItem(title: L.takeScreenshot, action: #selector(takeScreenshot), keyEquivalent: "")
+        let screenshot = NSMenuItem(title: L.takeScreenshot, action: #selector(takeScreenshot), keyEquivalent: Tool.screenshotKey)
+        screenshot.keyEquivalentModifierMask = []
         screenshot.target = self
         menu.addItem(screenshot)
 

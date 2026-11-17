@@ -137,11 +137,17 @@ final class OverlayView: NSView {
         }
         if drawingMode,
            event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
-           let chars = event.charactersIgnoringModifiers,
-           let tool = Tool(key: chars) {
-            if store.current != nil { store.end() }
-            Settings.shared.tool = tool
-            return
+           let chars = event.charactersIgnoringModifiers {
+            if let tool = Tool(key: chars) {
+                if store.current != nil { store.end() }
+                Settings.shared.tool = tool
+                return
+            }
+            if chars == Tool.screenshotKey {
+                if store.current != nil { store.end() }
+                NotificationCenter.default.post(name: .brushtasticTakeScreenshot, object: nil)
+                return
+            }
         }
         super.keyDown(with: event)
     }
@@ -197,12 +203,14 @@ final class OverlayView: NSView {
         let keyFont = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
 
         struct Segment { let key: NSAttributedString; let label: NSAttributedString; let selected: Bool; let width: CGFloat }
-        let segments: [Segment] = Tool.allCases.map { tool in
-            let selected = tool == current
-            let color: NSColor = selected ? .white : NSColor.white.withAlphaComponent(0.75)
-            let key = NSAttributedString(string: tool.key, attributes: [.font: keyFont, .foregroundColor: color])
-            let label = NSAttributedString(string: tool.name, attributes: [.font: font, .foregroundColor: color])
-            return Segment(key: key, label: label, selected: selected,
+        // Verktøyene, pluss skjermbilde på tast 5 (en handling, aldri «valgt»).
+        let entries = Tool.allCases.map { (key: $0.key, name: $0.name, selected: $0 == current) }
+            + [(key: Tool.screenshotKey, name: L.toolScreenshot, selected: false)]
+        let segments: [Segment] = entries.map { entry in
+            let color: NSColor = entry.selected ? .white : NSColor.white.withAlphaComponent(0.75)
+            let key = NSAttributedString(string: entry.key, attributes: [.font: keyFont, .foregroundColor: color])
+            let label = NSAttributedString(string: entry.name, attributes: [.font: font, .foregroundColor: color])
+            return Segment(key: key, label: label, selected: entry.selected,
                            width: 10 + 18 + 6 + ceil(label.size().width) + 12)
         }
 

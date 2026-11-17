@@ -96,7 +96,12 @@ final class Settings {
     }
 
     var tool: Tool {
-        get { Tool(rawValue: defaults.integer(forKey: Key.tool)) ?? .freehand }
+        get {
+            let raw = defaults.integer(forKey: Key.tool)
+            // Før 1.1.1 hadde rett strek tast 5; den er nå 4.
+            if raw == 5 { return .line }
+            return Tool(rawValue: raw) ?? .freehand
+        }
         set {
             defaults.set(newValue.rawValue, forKey: Key.tool)
             NotificationCenter.default.post(name: .brushtasticToolChanged, object: nil)

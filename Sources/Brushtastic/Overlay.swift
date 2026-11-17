@@ -2,7 +2,7 @@ import AppKit
 
 /// Gjennomsiktig, kantløst panel som dekker én skjerm.
 final class OverlayPanel: NSPanel {
-    init(screen: NSScreen, store: StrokeStore) {
+    init(screen: NSScreen, store: StrokeStore, selection: ScreenshotSelection) {
         super.init(contentRect: screen.frame,
                    styleMask: [.borderless, .nonactivatingPanel],
                    backing: .buffered,
@@ -19,7 +19,8 @@ final class OverlayPanel: NSPanel {
         ignoresMouseEvents = true
         acceptsMouseMovedEvents = true
 
-        let view = OverlayView(frame: CGRect(origin: .zero, size: screen.frame.size), store: store)
+        let view = OverlayView(frame: CGRect(origin: .zero, size: screen.frame.size),
+                               store: store, selection: selection)
         view.autoresizingMask = [.width, .height]
         contentView = view
         initialFirstResponder = view
@@ -39,23 +40,36 @@ final class OverlayPanel: NSPanel {
     }
 
     func setDrawingMode(_ on: Bool) {
-        ignoresMouseEvents = !on
         overlayView.drawingMode = on
+        ignoresMouseEvents = !overlayView.interactive
+    }
+
+    /// Velg utsnitt til skjermbilde: overlayet fanger musa, men tegner ikke.
+    func setSelecting(_ on: Bool) {
+        overlayView.selecting = on
+        ignoresMouseEvents = !overlayView.interactive
     }
 }
 
 final class OverlayView: NSView {
     private let store: StrokeStore
-    var drawingMode = false {
-        didSet {
-            needsDisplay = true
-            window?.invalidateCursorRects(for: self)
-            if drawingMode { NSCursor.crosshair.set() } else { NSCursor.arrow.set() }
-        }
+    private let selection: ScreenshotSelection
+    var drawingMode = false { didSet { modeChanged() } }
+    /// Brukeren velger utsnitt til skjermbilde.
+    var selecting = false { didSet { modeChanged() } }
+
+    /// Tar overlayet imot mus og taster?
+    var interactive: Bool { drawingMode || selecting }
+
+    private func modeChanged() {
+        needsDisplay = true
+        window?.invalidateCursorRects(for: self)
+        if interactive { NSCursor.crosshair.set() } else { NSCursor.arrow.set() }
     }
 
-    init(frame: CGRect, store: StrokeStore) {
+    init(frame: CGRect, store: StrokeStore, selection: ScreenshotSelection) {
         self.store = store
+        self.selection = selection
         super.init(frame: frame)
         wantsLayer = true
         NotificationCenter.default.addObserver(forName: .brushtasticToolChanged, object: nil,
@@ -79,15 +93,15 @@ final class OverlayView: NSView {
     }
 
     override func cursorUpdate(with event: NSEvent) {
-        if drawingMode { NSCursor.crosshair.set() } else { super.cursorUpdate(with: event) }
+        if interactive { NSCursor.crosshair.set() } else { super.cursorUpdate(with: event) }
     }
 
     override func mouseMoved(with event: NSEvent) {
-        if drawingMode { NSCursor.crosshair.set() }
+        if interactive { NSCursor.crosshair.set() }
     }
 
     override func mouseEntered(with event: NSEvent) {
-        if drawingMode {
+        if interactive {
             NSCursor.crosshair.set()
             // Gjør panelet under musa til key-vindu, så tastene treffer.
             window?.makeKey()
@@ -102,17 +116,24 @@ final class OverlayView: NSView {
     private func isShift(_ event: NSEvent) -> Bool { event.modifierFlags.contains(.shift) }
 
     override func mouseDown(with event: NSEvent) {
+        if selecting {
+            window?.makeKey()
+            selection.begin(at: mousePoint)
+            return
+        }
         guard drawingMode else { return }
         window?.makeKey()
         store.begin(at: mousePoint, constrained: isShift(event))
     }
 
     override func mouseDragged(with event: NSEvent) {
+        if selecting { selection.update(to: mousePoint); return }
         guard drawingMode else { return }
         store.append(mousePoint, constrained: isShift(event))
     }
 
     override func mouseUp(with event: NSEvent) {
+        if selecting { selection.finish(at: mousePoint); return }
         guard drawingMode else { return }
         store.append(mousePoint, constrained: isShift(event))
         store.end()
@@ -126,12 +147,14 @@ final class OverlayView: NSView {
     }
 
     override func rightMouseDown(with event: NSEvent) {
-        // Høyreklikk visker alt.
+        // Høyreklikk visker alt, eller avbryter skjermbildet.
+        if selecting { selection.cancel(); return }
         if drawingMode { store.clear() }
     }
 
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 53 { // Esc
+            if selecting { selection.cancel(); return }
             NotificationCenter.default.post(name: .brushtasticExitDrawing, object: nil)
             return
         }
@@ -169,6 +192,8 @@ final class OverlayView: NSView {
             border.stroke()
         }
 
+        if selecting { drawSelection(in: window.frame) }
+
         let origin = window.frame.origin
         let now = store.now
         let delay = Settings.shared.fadeDelay
@@ -192,6 +217,35 @@ final class OverlayView: NSView {
         }
 
         if drawingMode { drawToolBar() }
+    }
+
+    // MARK: Utsnitt til skjermbilde
+
+    /// Demper skjermen utenfor utsnittet og tegner en ramme rundt det.
+    private func drawSelection(in screenRect: CGRect) {
+        NSColor.black.withAlphaComponent(0.25).setFill()
+        bounds.fill()
+        guard let rect = selection.rect, rect.intersects(screenRect) else { return }
+        let local = rect.offsetBy(dx: -screenRect.minX, dy: -screenRect.minY)
+        NSColor.clear.setFill()
+        local.fill(using: .copy)
+        NSColor.white.setStroke()
+        let border = NSBezierPath(rect: local.insetBy(dx: -0.5, dy: -0.5))
+        border.lineWidth = 1
+        border.stroke()
+
+        // Størrelsen i punkter, under utsnittet (eller inni hvis det ikke er plass).
+        let text = NSAttributedString(string: "\(Int(rect.width)) × \(Int(rect.height))", attributes: [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.white,
+        ])
+        let size = text.size()
+        var label = CGRect(x: local.minX, y: local.minY - size.height - 10,
+                           width: size.width + 12, height: size.height + 4)
+        if label.minY < bounds.minY { label.origin.y = local.minY + 4; label.origin.x += 4 }
+        NSColor.black.withAlphaComponent(0.7).setFill()
+        NSBezierPath(roundedRect: label, xRadius: 4, yRadius: 4).fill()
+        text.draw(at: CGPoint(x: label.minX + 6, y: label.minY + 2))
     }
 
     // MARK: Verktøylinje

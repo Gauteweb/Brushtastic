@@ -9,6 +9,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var hotKey: HotKey?
     private var drawing = false
     private var capturing = false
+    /// Tegnemodus var på da skjermbildet startet, og skal slås på igjen etterpå.
+    private var drawingBeforeCapture = false
+    /// Har vi allerede bedt macOS om tilgang til skjermopptak i denne økten?
+    private var askedForScreenAccess = false
+    private let selection = ScreenshotSelection()
 
     private var toggleItem: NSMenuItem!
     private var loginItem: NSMenuItem!
@@ -23,6 +28,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         store.onChange = { [weak self] in
             self?.panels.forEach { $0.overlayView.needsDisplay = true }
         }
+        selection.onChange = { [weak self] in
+            self?.panels.forEach { $0.overlayView.needsDisplay = true }
+        }
+        selection.onFinish = { [weak self] rect, screen in self?.capture(rect, on: screen) }
+        selection.onCancel = { [weak self] in self?.finishScreenshot() }
 
         setupStatusItem()
         rebuildPanels()
@@ -60,9 +70,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func rebuildPanels() {
+        // Skjermoppsettet endret seg midt i valg av utsnitt: avbryt skjermbildet.
+        if capturing { finishScreenshot() }
         panels.forEach { $0.orderOut(nil); $0.close() }
         panels = NSScreen.screens.map { screen in
-            let p = OverlayPanel(screen: screen, store: store)
+            let p = OverlayPanel(screen: screen, store: store, selection: selection)
             p.setDrawingMode(drawing)
             p.orderFrontRegardless()
             return p
@@ -284,46 +296,72 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: Skjermbilde
 
-    /// Lar brukeren velge et utsnitt av skjermen og legger bildet på utklippstavla.
-    /// Bruker macOS' eget verktøy (samme som ⌘⇧4), så strekene i overlay-vinduene kommer med.
+    /// Lar brukeren dra ut et utsnitt av skjermen og legger bildet på utklippstavla.
+    /// Strekene er med i bildet og står stille (uttoningen er på pause) mens utsnittet velges.
     @objc private func takeScreenshot() {
         guard !capturing else { return }
-        capturing = true
-
-        // Strekene skal stå stille mens brukeren velger utsnitt.
-        store.pauseFading()
-        // Skru av tegnemodus midlertidig: overlayet må slippe gjennom musa til
-        // utsnittsverktøyet, og tonet bakgrunn, ramme og verktøylinje skal ikke med i bildet.
-        let wasDrawing = drawing
-        setDrawing(false)
-        panels.forEach { $0.overlayView.display() }
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        // -i: velg utsnitt interaktivt (mellomrom bytter til vindu, Esc avbryter)
-        // -c: til utklippstavla, ikke fil
-        process.arguments = ["-i", "-c"]
-        process.terminationHandler = { [weak self] _ in
-            DispatchQueue.main.async { self?.finishScreenshot(restoreDrawing: wasDrawing) }
+        guard CGPreflightScreenCaptureAccess() else {
+            requestScreenAccess()
+            return
         }
-        do {
-            try process.run()
-        } catch {
-            NSLog("Brushtastic: kunne ikke starte screencapture: \(error)")
-            finishScreenshot(restoreDrawing: wasDrawing)
-            let alert = NSAlert()
-            alert.messageText = L.screenshotError
-            alert.informativeText = error.localizedDescription
-            NSApp.activate(ignoringOtherApps: true)
-            alert.runModal()
+        capturing = true
+        drawingBeforeCapture = drawing
+        store.pauseFading()
+        // Tegnemodus av: tonet bakgrunn, ramme og verktøylinje skal ikke med i bildet.
+        setDrawing(false)
+        selection.reset()
+        panels.forEach { $0.setSelecting(true) }
+        focusPanelUnderMouse()
+    }
+
+    /// Første gang viser macOS sin egen forespørsel; senere forklarer vi hva som må gjøres.
+    private func requestScreenAccess() {
+        if !askedForScreenAccess {
+            askedForScreenAccess = true
+            if CGRequestScreenCaptureAccess() { takeScreenshot() }
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = L.screenAccessTitle
+        alert.informativeText = L.screenAccessText
+        alert.addButton(withTitle: L.openSystemSettings)
+        alert.addButton(withTitle: L.cancel)
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn,
+           let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
         }
     }
 
-    private func finishScreenshot(restoreDrawing: Bool) {
+    private func capture(_ rect: CGRect, on screen: NSScreen) {
+        // Fjern demping og ramme fra skjermen før bildet tas.
+        panels.forEach { $0.setSelecting(false); $0.overlayView.display() }
+        selection.reset()
+        Task { @MainActor in
+            // La vindusserveren rekke å vise skjermen uten utsnittsrammen.
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            do {
+                let image = try await Screenshotter.capture(rect, on: screen)
+                Screenshotter.copyToClipboard(image)
+            } catch {
+                NSLog("Brushtastic: kunne ikke ta skjermbilde: \(error)")
+                let alert = NSAlert()
+                alert.messageText = L.screenshotError
+                alert.informativeText = error.localizedDescription
+                NSApp.activate(ignoringOtherApps: true)
+                alert.runModal()
+            }
+            self.finishScreenshot()
+        }
+    }
+
+    private func finishScreenshot() {
         guard capturing else { return }
         capturing = false
+        panels.forEach { $0.setSelecting(false) }
+        selection.reset()
         store.resumeFading()
-        if restoreDrawing { setDrawing(true) }
+        if drawingBeforeCapture { setDrawing(true) }
     }
 
     // MARK: Start ved innlogging

@@ -34,9 +34,9 @@ in your way.
 - **Multiple displays** — a single stroke can cross from one screen to the next.
 - **Colors, line widths and transparency** — red, yellow, green, blue, pink, white or black; thin,
   medium or thick; 0 %, 25 %, 50 % or 75 % transparent (handy as a highlighter).
-- **Screenshot of a selection** — **Take Screenshot of Selection…** in the menu lets you drag out
-  part of the screen (or press Space to pick a window) and copies it, strokes included, to the
-  clipboard. Strokes stop fading while you choose the area.
+- **Screenshot of a selection** — press `5` while drawing, or choose **Take Screenshot of
+  Selection…** in the menu, then drag out part of the screen. The image, strokes included, is
+  copied to the clipboard. Strokes stop fading while you choose the area.
 - **Launch at login** — one click in the menu.
 - **No Dock icon** — lives only in the menu bar.
 - **Norwegian and English** — shown in Norwegian when macOS's preferred language is Norwegian
@@ -103,7 +103,7 @@ brew uninstall brushtastic
 
 ### Build from source
 
-Requires macOS 13 or later and the Xcode Command Line Tools (full Xcode is not needed).
+Requires macOS 14 or later and the Xcode Command Line Tools (full Xcode is not needed).
 
 ```sh
 git clone https://github.com/Gauteweb/Brushtastic.git

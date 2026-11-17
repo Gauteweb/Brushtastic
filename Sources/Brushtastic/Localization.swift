@@ -10,6 +10,10 @@ struct L10n {
     let takeScreenshot: String
     let screenshotError: String
     let toolScreenshot: String
+    let screenAccessTitle: String
+    let screenAccessText: String
+    let openSystemSettings: String
+    let cancel: String
     let fadeNever: String
     let fadeAfter: (String) -> String
     let tool: String
@@ -50,6 +54,10 @@ struct L10n {
         takeScreenshot: "Ta skjermbilde av utsnitt…",
         screenshotError: "Kunne ikke ta skjermbilde",
         toolScreenshot: "Skjermbilde",
+        screenAccessTitle: "Brushtastic trenger tilgang til skjermopptak",
+        screenAccessText: "Skru på Brushtastic under Personvern og sikkerhet → Skjerm- og systemlydopptak i Systeminnstillinger. Avslutt og åpne Brushtastic igjen etterpå.",
+        openSystemSettings: "Åpne Systeminnstillinger",
+        cancel: "Avbryt",
         fadeNever: "Fader aldri ut",
         fadeAfter: { "Fader ut etter \($0) s" },
         tool: "Verktøy",
@@ -86,6 +94,10 @@ struct L10n {
         takeScreenshot: "Take Screenshot of Selection…",
         screenshotError: "Could not take screenshot",
         toolScreenshot: "Screenshot",
+        screenAccessTitle: "Brushtastic needs Screen Recording access",
+        screenAccessText: "Turn on Brushtastic under Privacy & Security → Screen & System Audio Recording in System Settings, then quit and reopen Brushtastic.",
+        openSystemSettings: "Open System Settings",
+        cancel: "Cancel",
         fadeNever: "Never fade out",
         fadeAfter: { "Fade out after \($0) s" },
         tool: "Tool",

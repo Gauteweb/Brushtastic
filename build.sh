@@ -4,8 +4,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION="1.1.1"   # shown in the menu and in Finder
-BUILD="5"
+VERSION="1.1.2"   # shown in the menu and in Finder
+BUILD="6"
 
 APP="build/Brushtastic.app"
 rm -rf "$APP"
@@ -13,7 +13,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 # Compile with swiftc directly (no SwiftPM), so it also works in Homebrew's sandbox.
 swiftc -O -swift-version 5 \
-    -framework AppKit -framework Carbon -framework ServiceManagement \
+    -framework AppKit -framework Carbon -framework ServiceManagement -framework ScreenCaptureKit \
     -o "$APP/Contents/MacOS/Brushtastic" \
     Sources/Brushtastic/*.swift
 
@@ -44,7 +44,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>${BUILD}</string>
-    <key>LSMinimumSystemVersion</key><string>13.0</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
 </dict>

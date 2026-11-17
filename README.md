@@ -34,11 +34,15 @@ in your way.
 - **Multiple displays** — a single stroke can cross from one screen to the next.
 - **Colors, line widths and transparency** — red, yellow, green, blue, pink, white or black; thin,
   medium or thick; 0 %, 25 %, 50 % or 75 % transparent (handy as a highlighter).
+- **Screenshot of a selection** — **Take Screenshot of Selection…** in the menu lets you drag out
+  part of the screen (or press Space to pick a window) and copies it, strokes included, to the
+  clipboard. Strokes stop fading while you choose the area.
 - **Launch at login** — one click in the menu.
 - **No Dock icon** — lives only in the menu bar.
 - **Norwegian and English** — shown in Norwegian when macOS's preferred language is Norwegian
   (Bokmål, Nynorsk or "Norsk"), otherwise English.
-- **No special permissions** — the shortcut does not require Accessibility access.
+- **No special permissions for drawing** — the shortcut does not require Accessibility access.
+  Screenshots need Screen Recording access (macOS asks the first time).
 
 ## Usage
 
@@ -49,6 +53,7 @@ in your way.
 | Constrain shape / line angle   | Hold ⇧ Shift while dragging                 |
 | Clear everything               | Right-click while drawing, or **Clear All** |
 | Exit drawing mode              | `Esc` or ⌃⌥D                                |
+| Screenshot to clipboard        | **Take Screenshot of Selection…**, then drag; `Esc` cancels |
 | Change fade-out delay          | Slider in the menu bar menu                 |
 
 While drawing mode is on, the screen gets a faint tint and an accent-colored border, and a toolbar

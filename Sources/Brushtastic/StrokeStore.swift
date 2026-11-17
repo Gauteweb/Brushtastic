@@ -58,6 +58,11 @@ final class StrokeStore {
     private(set) var strokes: [Stroke] = []
     private(set) var current: Stroke?
     private var timer: Timer?
+    /// Satt mens uttoningen er satt på pause (f.eks. mens et skjermbilde tas).
+    private var pausedAt: CFTimeInterval?
+
+    /// Tidspunktet uttoningen regnes fra. Står stille mens uttoningen er på pause.
+    var now: CFTimeInterval { pausedAt ?? CACurrentMediaTime() }
 
     /// Kalles når noe må tegnes på nytt.
     var onChange: (() -> Void)?
@@ -91,7 +96,7 @@ final class StrokeStore {
         if current.isNegligibleShape {
             strokes.removeAll { $0 === current }
         } else {
-            current.finishedAt = CACurrentMediaTime()
+            current.finishedAt = now
             startTimerIfNeeded()
         }
         onChange?()
@@ -111,16 +116,33 @@ final class StrokeStore {
         if Settings.shared.neverFades {
             stopTimer()
         } else {
-            let now = CACurrentMediaTime()
+            let now = self.now
             strokes.forEach { if $0.finishedAt != nil { $0.finishedAt = now } }
             startTimerIfNeeded()
         }
         onChange?()
     }
 
+    /// Fryser uttoningen: strekene blir stående akkurat som de er til `resumeFading()` kalles.
+    func pauseFading() {
+        guard pausedAt == nil else { return }
+        pausedAt = CACurrentMediaTime()
+        stopTimer()
+    }
+
+    /// Fortsetter uttoningen der den slapp; tiden på pause teller ikke med.
+    func resumeFading() {
+        guard let pausedAt else { return }
+        let paused = CACurrentMediaTime() - pausedAt
+        self.pausedAt = nil
+        strokes.forEach { if let f = $0.finishedAt { $0.finishedAt = f + paused } }
+        startTimerIfNeeded()
+        onChange?()
+    }
+
     private func startTimerIfNeeded() {
-        // Ingen animasjon trengs når strekene aldri fader.
-        guard timer == nil, !Settings.shared.neverFades else { return }
+        // Ingen animasjon trengs når strekene aldri fader, eller mens uttoningen er på pause.
+        guard timer == nil, pausedAt == nil, !Settings.shared.neverFades else { return }
         let t = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in self?.tick() }
         // .common slik at animasjonen fortsetter mens menyen er åpen.
         RunLoop.main.add(t, forMode: .common)
@@ -133,8 +155,8 @@ final class StrokeStore {
     }
 
     private func tick() {
-        if Settings.shared.neverFades { stopTimer(); return }
-        let now = CACurrentMediaTime()
+        if Settings.shared.neverFades || pausedAt != nil { stopTimer(); return }
+        let now = self.now
         let delay = Settings.shared.fadeDelay
         let duration = Settings.fadeDuration
         let before = strokes.count

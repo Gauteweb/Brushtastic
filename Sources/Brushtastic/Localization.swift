@@ -7,6 +7,8 @@ struct L10n {
     let startDrawing: String
     let stopDrawing: String
     let clearAll: String
+    let takeScreenshot: String
+    let screenshotError: String
     let fadeNever: String
     let fadeAfter: (String) -> String
     let tool: String
@@ -44,6 +46,8 @@ struct L10n {
         startDrawing: "Start tegning",
         stopDrawing: "Stopp tegning",
         clearAll: "Visk ut alt",
+        takeScreenshot: "Ta skjermbilde av utsnitt…",
+        screenshotError: "Kunne ikke ta skjermbilde",
         fadeNever: "Fader aldri ut",
         fadeAfter: { "Fader ut etter \($0) s" },
         tool: "Verktøy",
@@ -77,6 +81,8 @@ struct L10n {
         startDrawing: "Start Drawing",
         stopDrawing: "Stop Drawing",
         clearAll: "Clear All",
+        takeScreenshot: "Take Screenshot of Selection…",
+        screenshotError: "Could not take screenshot",
         fadeNever: "Never fade out",
         fadeAfter: { "Fade out after \($0) s" },
         tool: "Tool",

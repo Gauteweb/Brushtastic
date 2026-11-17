@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var hotKey: HotKey?
     private var drawing = false
+    private var capturing = false
 
     private var toggleItem: NSMenuItem!
     private var loginItem: NSMenuItem!
@@ -70,6 +71,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Tegnemodus
 
     private func toggleDrawing() {
+        // Ikke start tegning midt i et skjermbilde; overlayet ville fanget musa.
+        guard !capturing else { return }
         setDrawing(!drawing)
     }
 
@@ -118,6 +121,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let clear = NSMenuItem(title: L.clearAll, action: #selector(clearAll), keyEquivalent: "")
         clear.target = self
         menu.addItem(clear)
+
+        let screenshot = NSMenuItem(title: L.takeScreenshot, action: #selector(takeScreenshot), keyEquivalent: "")
+        screenshot.target = self
+        menu.addItem(screenshot)
 
         menu.addItem(.separator())
         menu.addItem(makeDelayItem())
@@ -270,6 +277,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func clearAll() {
         store.clear()
+    }
+
+    // MARK: Skjermbilde
+
+    /// Lar brukeren velge et utsnitt av skjermen og legger bildet på utklippstavla.
+    /// Bruker macOS' eget verktøy (samme som ⌘⇧4), så strekene i overlay-vinduene kommer med.
+    @objc private func takeScreenshot() {
+        guard !capturing else { return }
+        capturing = true
+
+        // Strekene skal stå stille mens brukeren velger utsnitt.
+        store.pauseFading()
+        // Skru av tegnemodus midlertidig: overlayet må slippe gjennom musa til
+        // utsnittsverktøyet, og tonet bakgrunn, ramme og verktøylinje skal ikke med i bildet.
+        let wasDrawing = drawing
+        setDrawing(false)
+        panels.forEach { $0.overlayView.display() }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        // -i: velg utsnitt interaktivt (mellomrom bytter til vindu, Esc avbryter)
+        // -c: til utklippstavla, ikke fil
+        process.arguments = ["-i", "-c"]
+        process.terminationHandler = { [weak self] _ in
+            DispatchQueue.main.async { self?.finishScreenshot(restoreDrawing: wasDrawing) }
+        }
+        do {
+            try process.run()
+        } catch {
+            NSLog("Brushtastic: kunne ikke starte screencapture: \(error)")
+            finishScreenshot(restoreDrawing: wasDrawing)
+            let alert = NSAlert()
+            alert.messageText = L.screenshotError
+            alert.informativeText = error.localizedDescription
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+        }
+    }
+
+    private func finishScreenshot(restoreDrawing: Bool) {
+        guard capturing else { return }
+        capturing = false
+        store.resumeFading()
+        if restoreDrawing { setDrawing(true) }
     }
 
     // MARK: Start ved innlogging

@@ -4,8 +4,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION="1.0.2"   # shown in the menu and in Finder
-BUILD="3"
+VERSION="1.1.0"   # shown in the menu and in Finder
+BUILD="4"
 
 APP="build/Brushtastic.app"
 rm -rf "$APP"

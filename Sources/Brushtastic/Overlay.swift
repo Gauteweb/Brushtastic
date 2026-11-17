@@ -164,7 +164,7 @@ final class OverlayView: NSView {
         }
 
         let origin = window.frame.origin
-        let now = CACurrentMediaTime()
+        let now = store.now
         let delay = Settings.shared.fadeDelay
         let duration = Settings.fadeDuration
         let visibleScreenRect = window.frame
